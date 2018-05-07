@@ -32,9 +32,6 @@ THE SOFTWARE.
 
 #include <stdexcept>
 
-#include "byteio.h"
-#include "bitio.h"
-
 #ifdef LOG
 #include <iomanip>
 #include <iostream>
