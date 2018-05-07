@@ -1,15 +1,15 @@
 #include <fstream>
 #include <iostream>
-#include "model.h"
-
+#include <vector>
+#include "aricompressor.h"
 using namespace std;
 using ht = tsl::htrie_map<char, int32_t>;
 
-void compress(ifstream& fin){
+void readInput(ifstream& fin, vector<char> &input){
     int count = 0;
     char c;
     while(fin.get(c)){
-        count ++;
+        input.push_back(c);
     }
     fin.close();
     cout << count << endl;
@@ -17,7 +17,6 @@ void compress(ifstream& fin){
 }
 
 int main(){
-    // ifstream fin("enwik8", ios::in);
     // compress(fin);
     // ht context;
     // context.insert("abcd", 1);
@@ -43,15 +42,28 @@ int main(){
     // }
     // cout << (string("acb") < string("abc")) << endl;
     // cout << string("abc").back() << endl;
-    Model m = Model(3, 128);
-    string compress = string("bananaboat");
-    for(auto it = compress.begin(); it != compress.end(); it++){
-        auto probs = m.getProbability(*it);
-        for(auto vit = probs.begin(); vit !=probs.end(); vit++){
-
-            cout << get<0>(*vit) << " " <<get<1>(*vit) << " " <<get<2>(*vit)  << endl;
-        }
-        m.updateModel(*it);
+    ifstream fin("enwik8", ios::in);
+    vector<char> input;
+    vector<char> output;
+    readInput(fin, input);
+    fin.close();
+    Model m = Model(5, 255);
+    compress(input, output, 0, input.size(), m);
+    cout << "Finished compressing " << input.size() << endl;
+    ofstream fout("enwik8.comp", ios::out);
+    for(int i = 0; i < output.size(); i++){
+        fout.put(output[i]);
     }
+    fout.close();
+    cout << "Finished Writing " << output.size() << " bytes" << endl;
+    // string compress = string("bananaboat");
+    // for(auto it = compress.begin(); it != compress.end(); it++){
+    //     auto probs = m.getProbability(*it);
+    //     for(auto vit = probs.begin(); vit !=probs.end(); vit++){
+
+    //         cout << get<0>(*vit) << " " <<get<1>(*vit) << " " <<get<2>(*vit)  << endl;
+    //     }
+    //     m.updateModel(*it);
+    // }
     return 0;
 }

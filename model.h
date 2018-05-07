@@ -14,6 +14,12 @@ class Model{
     Model(int k, int totalChars);
     vector<tuple<double, double, double>> getProbability(char c);
     void updateModel(char c);
+    static const uint MAX = 0xFFFFFFFFU;
+    static const uint ONE_FOURTH = 0x40000000;
+    static const uint ONE_HALF = 0x80000000;
+    static const uint THREE_FOURTHS = 0xC0000000;
+
+
     private:
     ht context;
     deque<char> prevChars;
@@ -22,4 +28,7 @@ class Model{
     void addRange(ht::iterator hit, pair<ht::prefix_iterator, ht::prefix_iterator> range,
                      vector<tuple<int, int, int>> &probabilities, set<char> &unusable);
     
+    tuple<double, double, double> getChar(double scaledValue, char &c);
+    int contextStartDec;
+    set<char>unusable;
 };

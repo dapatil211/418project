@@ -4,7 +4,7 @@ CFLAGS = -O0 -g -Wall -DDEBUG=$(DEBUG) -std=c++11
 LDFLAGS = -lm
 
 CFILES = compression.cpp model.cpp
-HFILES = model.h
+HFILES = model.h aricompressor.h
 
 all: comp
 
