@@ -53,6 +53,8 @@ class compressor
 {
   typedef typename MODEL::CODE_VALUE CODE_VALUE;
   typedef typename MODEL::prob prob;
+  typedef vector<tuple<double, double, double>> prob_vect;
+
 public :
   compressor(INPUT &input, OUTPUT &output, MODEL &model )
   : m_input(input),
@@ -79,47 +81,56 @@ public :
         log << "(" << char(c) << ")";
       log << " 0x" << low << " 0x" << high << " => ";
 #endif
-      prob p = m_model.getProbability( c );
-      CODE_VALUE range = high - low + 1;
-      high = low + (range * p.high / p.count) - 1;
-      low = low + (range * p.low / p.count);
+      //prob p = m_model.getProbability( c );
+      prob_vect p = m_model.getProbability( c );
+      prob_vect :: iterator i;
+      for(i = p.begin(); i != p.end(); ++i){
+          if(get<2>(*i) == 0){
+            continue;
+          }
+          CODE_VALUE range = high - low + 1;
+          //high = low + (range * p.high / p.count) - 1;
+          high = low + (range * get<1>(*i) / get<2>(*i)) - 1;
+          //low = low + (range * p.low / p.count);
+          low = low + (range * get<0>(*i) / get<2>(*i));
 #ifdef LOG
-      log << "0x" << low << " 0x" << high << "\n";
+          log << "0x" << low << " 0x" << high << "\n";
 #endif
-      //
-      // On each pass there are six possible configurations of high/low,
-      // each of which has its own set of actions. When high or low
-      // is converging, we output their MSB and upshift high and low.
-      // When they are in a near-convergent state, we upshift over the
-      // next-to-MSB, increment the pending count, leave the MSB intact,
-      // and don't output anything. If we are not converging, we do
-      // no shifting and no output.
-      // high: 0xxx, low anything : converging (output 0)
-      // low: 1xxx, high anything : converging (output 1)
-      // high: 10xxx, low: 01xxx : near converging
-      // high: 11xxx, low: 01xxx : not converging
-      // high: 11xxx, low: 00xxx : not converging
-      // high: 10xxx, low: 00xxx : not converging
-      //
-      for ( ; ; ) {
-        if ( high < MODEL::ONE_HALF )
-          put_bit_plus_pending(0, pending_bits);
-        else if ( low >= MODEL::ONE_HALF )
-          put_bit_plus_pending(1, pending_bits);
-        else if ( low >= MODEL::ONE_FOURTH && high < MODEL::THREE_FOURTHS ) {
-          pending_bits++;
-          low -= MODEL::ONE_FOURTH;
-          high -= MODEL::ONE_FOURTH;
-        } else
-          break;
-        high <<= 1;
-        high++;
-        low <<= 1;
-        high &= MODEL::MAX_CODE;
-        low &= MODEL::MAX_CODE;
-      }
-      if ( c == 256 ) //256 is the special EOF code
-        break;
+          //
+          // On each pass there are six possible configurations of high/low,
+          // each of which has its own set of actions. When high or low
+          // is converging, we output their MSB and upshift high and low.
+          // When they are in a near-convergent state, we upshift over the
+          // next-to-MSB, increment the pending count, leave the MSB intact,
+          // and don't output anything. If we are not converging, we do
+          // no shifting and no output.
+          // high: 0xxx, low anything : converging (output 0)
+          // low: 1xxx, high anything : converging (output 1)
+          // high: 10xxx, low: 01xxx : near converging
+          // high: 11xxx, low: 01xxx : not converging
+          // high: 11xxx, low: 00xxx : not converging
+          // high: 10xxx, low: 00xxx : not converging
+          //
+          for ( ; ; ) {
+            if ( high < MODEL::ONE_HALF )
+              put_bit_plus_pending(0, pending_bits);
+            else if ( low >= MODEL::ONE_HALF )
+              put_bit_plus_pending(1, pending_bits);
+            else if ( low >= MODEL::ONE_FOURTH && high < MODEL::THREE_FOURTHS ) {
+              pending_bits++;
+              low -= MODEL::ONE_FOURTH;
+              high -= MODEL::ONE_FOURTH;
+            } else
+              break;
+            high <<= 1;
+            high++;
+            low <<= 1;
+            high &= MODEL::MAX_CODE;
+            low &= MODEL::MAX_CODE;
+          }
+          if ( c == 256 ) //256 is the special EOF code
+            break;
+        }
     }
     pending_bits++;
     if ( low < MODEL::ONE_FOURTH )
