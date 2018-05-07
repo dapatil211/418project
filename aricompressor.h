@@ -71,8 +71,9 @@ public :
     int pending_bits = 0;
     CODE_VALUE low = 0;
     CODE_VALUE high = MODEL::MAX_CODE;
-    for ( ; ; ) {
-      int c = m_input.getByte();
+    int file_index = start_index;
+    while(file_index <=   ){
+      char c = input[]
       if ( c == -1 )
         c = 256;
 #ifdef LOG
