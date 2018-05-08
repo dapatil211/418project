@@ -2,7 +2,7 @@
 #include <iostream>
 #include <vector>
 #include "aricompressor.h"
-
+#include "cycletimer.h"
 
 
 #if OMP
@@ -65,6 +65,7 @@ int main(){
     int total = input.size();
     int numThreads = 15;
     omp_set_num_threads(numThreads);
+    double startTime = currentSeconds();
     int tid;
     int chunkSize = (total + numThreads - 1)/numThreads;
     int prefixSum[numThreads];
@@ -85,31 +86,28 @@ int main(){
         cout << "Finished compressing tid" << tid << endl;
     }
 
-    cout << "HERE1" << endl;
     for(tid = 0; tid < numThreads; tid++){
         prefixSum[tid] = sum;
         sum += output[tid].size();
     }
-    cout << "HERE2" << endl;
 
     char compressedOut[sum];
-    cout << "HERE3" << endl;
 
     #pragma omp parallel for
     for(tid = 0; tid < numThreads; tid++){
-        int i;
+        uint i;
         for(i = 0; i < output[tid].size(); i++){
             compressedOut[prefixSum[tid] + i] = output[tid][i];
         }
     }
-    cout << "HERE4" << endl;
 
+    double totalTime = currentSeconds() - startTime;
+    cout << "Total Time: " << totalTime << endl;
     ofstream fout("enwikpar.out", ios::out);
     //ofstream fout("test.out", ios::out);
     for(int i = 0; i < numThreads; i++){
         fout <<prefixSum[i]<< " ";
     }
-    cout << "HERE5" << endl;
 
 
     for(int i = 0; i < sum; i++){

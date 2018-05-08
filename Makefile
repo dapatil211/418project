@@ -5,10 +5,10 @@ OMP =-fopenmp -DOMP
 CFLAGS = -O3 -g -Wall -DDEBUG=$(DEBUG) -DLOG=$(LOG) -std=c++11
 LDFLAGS = -lm
 
-COMP_CFILES = compression.cpp model.cpp trie.cpp
-COMP_HFILES = model.h aricompressor.h trie.h
-DECOMP_CFILES = decompression.cpp model.cpp trie.cpp
-DECOMP_HFILES = model.h aridecompressor.h trie.h
+COMP_CFILES = compression.cpp model.cpp trie.cpp cycletimer.c
+COMP_HFILES = model.h aricompressor.h trie.h cycletimer.h
+DECOMP_CFILES = decompression.cpp model.cpp trie.cpp cycletimer.c
+DECOMP_HFILES = model.h aridecompressor.h trie.h cycletimer.h
 
 
 all: comp decomp comp-omp
