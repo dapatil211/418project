@@ -43,15 +43,16 @@ int main(){
     // cout << (string("acb") < string("abc")) << endl;
     // cout << string("abc").back() << endl;
 
-    ifstream fin("enwik8", ios::in);
+    ifstream fin("test.in", ios::in);
     vector<char> input;
     vector<char> output;
     readInput(fin, input);
     fin.close();
     Model m = Model(5, 255);
+    cout << Model::ONE_FOURTH << " " << Model::ONE_HALF << " " << Model::THREE_FOURTHS << " " << Model::MAX << endl;
     compress(input, output, 0, input.size(), m);
     cout << "Finished compressing " << input.size() << endl;
-    ofstream fout("enwik8.comp", ios::out);
+    ofstream fout("test.comp", ios::out);
     for(uint i = 0; i < output.size(); i++){
         fout.put(output[i]);
     }

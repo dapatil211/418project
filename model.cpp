@@ -2,10 +2,11 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <algorithm>
 
 Model::Model(int k, int totalChars) : k(k) {
   for (int i = 0; i < totalChars; i++) {
-    unfound.insert(i + 'a');
+    unfound.insert(i);
   }
   contextStartDec = 0;
 }
@@ -16,7 +17,7 @@ Model::Model(int k, int totalChars) : k(k) {
 //   return esc;
 // }
 
-void Model::updateModel(char c) {
+void Model::updateModel(unsigned char c) {
   prevChars.push_back(c);
   for (uint i = 0; i < prevChars.size(); i++) {
     context.insert(prevChars, i);
@@ -46,10 +47,10 @@ void Model::updateModel(char c) {
 //                      vector<tuple<int, int, int>> &probabilities,
 //                      set<char> &unusable) {}
 
-vector<tuple<double, double, double>> Model::getProbability(char c) {
+vector<tuple<double, double, double>> Model::getProbability(unsigned char c) {
   vector<tuple<double, double, double>> probabilities;
   prevChars.push_back(c);
-  set<char> unusable;
+  set<unsigned char> unusable;
   // for (deque<char>::iterator it = prevChars.begin(); it != prevChars.end();
   // it++){
   for (uint i = 0; i < prevChars.size(); i++) {
@@ -90,7 +91,7 @@ vector<tuple<double, double, double>> Model::getProbability(char c) {
         TrieNode &parent = *(findRes.first);
         double escape = 0;
         double total_count = 0;
-        set<char> newUnusable;
+        set<unsigned char> newUnusable;
         for (auto pit = parent.children.begin(); pit != parent.children.end();
              pit++) {
           TrieNode *sibling = pit->second;
@@ -130,7 +131,8 @@ vector<tuple<double, double, double>> Model::getProbability(char c) {
     }
   }
 
-  set<char>::iterator it = unfound.find(c);
+  set<unsigned char>::iterator it = unfound.find(c);
+  cout << c << " " << (int) c << endl;
   if (it != unfound.end()) {
     int dist = distance(unfound.begin(), it);
     probabilities.push_back(make_tuple(dist, dist + 1, unfound.size()));
@@ -140,54 +142,140 @@ vector<tuple<double, double, double>> Model::getProbability(char c) {
   return probabilities;
 }
 
-// tuple<double, double, double> Model::getChar(double scaledValue, char &c) {
-//   while (contextStartDec <= k) {
-//     string key(prevChars.begin() + contextStartDec, prevChars.end());
-//     auto range = context.equal_prefix_range(key);
-//     if (range.first == context.prefix_cend()) {
-//       contextStartDec++;
-//       continue;
-//     }
-//     map<string, double> prefixMap;
-//     double escape = 0;
-//     set<char> newUnusable;
-//     for (auto pit = range.first; pit != range.second; pit++) {
-//       if (pit.key().size() == key.size() &&
-//       !unusable.count(pit.key().back())) {
-//         prefixMap[pit.key()] = pit.value();
-//         escape++;
-//         newUnusable.insert(pit.key().back());
-//       }
-//     }
-//     escape *= .5;
+struct cmp {
+    bool operator()(unsigned char i, const std::pair<unsigned char, TrieNode *>& p) const
+    {
+        return i < p.first;
+    }
 
-//     if (escape > scaledValue) {
-//       contextStartDec++;
-//       unusable.insert(newUnusable.begin(), newUnusable.end());
-//       double total = escape;
-//       for (auto mit = prefixMap.begin(); mit != prefixMap.end(); mit++) {
-//         total += mit->second;
-//       }
-//       return make_tuple(0, escape, total);
-//     } else {
-//       scaledValue -= escape;
-//       double total = escape;
-//       double preCount = escape;
-//       double charCount = 0;
-//       bool found = false;
-//       for (auto mit = prefixMap.begin(); mit != prefixMap.end(); mit++) {
-//         if (!found && mit->second > scaledValue) {
-//           c = mit->first.back();
-//           preCount = total;
-//           charCount = mit->second;
-//           found = true;
-//         }
-//         total += mit->second;
-//       }
-//       contextStartDec = 0;
-//       unusable.clear();
-//       return make_tuple(preCount, preCount + charCount, total);
-//     }
-//   }
-//   return make_tuple(0, 0, 0);
-// }
+    bool operator()(const std::pair<unsigned char, TrieNode *>& p, unsigned char i) const
+    {
+        return p.first < i;
+    }
+
+};
+
+tuple<double, double, double> Model::getChar(double scaledValue, unsigned char &c) {
+    cout << scaledValue << endl;
+  while (contextStartDec < k) {
+    auto findRes = context.find(prevChars, contextStartDec);
+
+    // string key(prevChars.begin() + contextStartDec, prevChars.end());
+    // auto range = context.equal_prefix_range(key);
+    // if (range.first == context.prefix_cend()) {
+    if(findRes.first->level == prevChars.size() - 1 - contextStartDec){
+      contextStartDec++;
+      continue;
+    }
+    TrieNode &parent = *(findRes.first);
+    // parent.
+    map<unsigned char, TrieNode*> usable;
+    set_difference(parent.children.begin(), parent.children.end(), 
+                    unusable.begin(), unusable.end(), inserter(usable, 
+                    usable.end()), cmp());
+    double escape = usable.size() * .5;
+    if(escape > scaledValue){
+        double total = escape;
+        for(auto uit = usable.begin(); uit != usable.end(); uit ++){
+            unusable.insert(uit->first);
+            total += uit->second->value;
+        }
+        contextStartDec ++;
+        return make_tuple(0, escape, total);
+    } else{
+        // scaledValue -= escape;
+        double total = escape;
+        double preCount = 0;
+        double postCount = 0;
+        bool found = false;
+        for (auto uit = usable.begin(); uit != usable.end(); uit++) {
+            total += uit->second->value;
+            if (!found && total > scaledValue) {
+                c = uit->first;
+                postCount = total;
+                preCount = total - uit->second->value;
+                found = true;
+            }
+        }
+        contextStartDec = 0;
+        unusable.clear();
+        return make_tuple(preCount, postCount, total);
+    }
+    // map<string, double> prefixMap;
+    // double escape = 0;
+    // set<char> newUnusable;
+    // for(auto pit = parent.children.begin(); pit != parent.children.end(); pit++){
+    //     bool usable = !unusable.count(pit->first);
+    //     escape += usable;
+    // }
+    // for (auto pit = range.first; pit != range.second; pit++) {
+    //   if (pit.key().size() == key.size() &&
+    //   !unusable.count(pit.key().back())) {
+    //     prefixMap[pit.key()] = pit.value();
+    //     escape++;
+    //     newUnusable.insert(pit.key().back());
+    //   }
+    // }
+    // escape *= .5;
+
+    // if (escape > scaledValue) {
+    //   contextStartDec++;
+    //   unusable.insert(newUnusable.begin(), newUnusable.end());
+    //   double total = escape;
+    //   for (auto mit = prefixMap.begin(); mit != prefixMap.end(); mit++) {
+    //     total += mit->second;
+    //   }
+    //   return make_tuple(0, escape, total);
+    // } else {
+    //   scaledValue -= escape;
+    //   double total = escape;
+    //   double preCount = escape;
+    //   double charCount = 0;
+    //   bool found = false;
+    //   for (auto mit = prefixMap.begin(); mit != prefixMap.end(); mit++) {
+    //     if (!found && mit->second > scaledValue) {
+    //       c = mit->first.back();
+    //       preCount = total;
+    //       charCount = mit->second;
+    //       found = true;
+    //     }
+    //     total += mit->second;
+    //   }
+    //   contextStartDec = 0;
+    //   unusable.clear();
+    //   return make_tuple(preCount, preCount + charCount, total);
+    // }
+  }
+
+  auto it = unfound.begin();
+  advance(it, (int) (scaledValue - 1));
+  c = *it;
+  unfound.erase(*it);
+  return make_tuple(scaledValue - 1, scaledValue, unfound.size() + 1);
+}
+
+double Model::getCount() {
+    while(contextStartDec < k){
+        auto findRes = context.find(prevChars, contextStartDec);
+        TrieNode &parent = *(findRes.first);
+        if(!findRes.first->level || findRes.first->level < prevChars.size() - contextStartDec){
+            contextStartDec++;
+            continue;
+        }
+        // parent.
+        map<unsigned char, TrieNode*> usable;
+        set_difference(parent.children.begin(), parent.children.end(), 
+                        unusable.begin(), unusable.end(), inserter(usable, 
+                        usable.end()), cmp());
+        if(!usable.size()){
+            contextStartDec++;
+            continue;
+        }
+        double total = 0;
+        for(auto uit = usable.begin(); uit != usable.end(); uit ++){
+            total += uit->second->value;
+        }
+        return total;
+    }
+    return unfound.size();
+}

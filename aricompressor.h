@@ -75,7 +75,7 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
          Model &model) {
 #ifdef LOG
   std::ofstream log("compressor.log");
-  log << std::hex;
+  log << std::dec;
 #endif
   int pending_bits = 0;
   uint low = 0;
@@ -89,10 +89,10 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
     if (c == -1)
       c = 255;
 #ifdef LOG
-    log << std::hex << "0x" << std::setw(2) << std::setfill('0') << c;
+    log << std::dec  << std::setw(2) << std::setfill('0') << c;
     if (c > 0x20 && c <= 0x7f)
       log << "(" << char(c) << ")";
-    log << " 0x" << low << " 0x" << high << " => ";
+    log << low  << " " << high << " " << bitset<" => ";
 #endif
     // prob p = m_model.getProbability( c );
     prob_vect p = model.getProbability(c);
@@ -100,13 +100,14 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
       if (get<2>(*i) == 0) {
         continue;
       }
+      cout << get<0>(*i) << " " <<get<1>(*i) << " " <<get<2>(*i)  << endl;
       uint range = high - low + 1;
       // high = low + (range * p.high / p.count) - 1;
       high = low + (range * get<1>(*i) / get<2>(*i)) - 1;
       // low = low + (range * p.low / p.count);
       low = low + (range * get<0>(*i) / get<2>(*i));
 #ifdef LOG
-      log << "0x" << low << " 0x" << high << endl;
+      log  << low << " " <<  high << endl;
 #endif
       //
       // On each pass there are six possible configurations of high/low,
@@ -131,7 +132,7 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
         else if (low >= Model::ONE_FOURTH && high < Model::THREE_FOURTHS) {
           pending_bits++;
           low -= Model::ONE_FOURTH;
-          high -= Model::ONE_FOURTH;
+          high += Model::ONE_FOURTH;
         } else
           break;
         high <<= 1;

@@ -24,23 +24,24 @@ THE SOFTWARE.
  This code was written to illustrate the article:
  Data Compression With Arithmetic Coding
  by Mark Nelson
- published at: http://marknelson.us/2014/10/19/data-compression-with-arithmetic-coding
+ published at:
+http://marknelson.us/2014/10/19/data-compression-with-arithmetic-coding
 
 */
 #ifndef DECOMPESSOR_DOT_H
 #define DECOMPESSOR_DOT_H
 
 #ifdef LOG
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #endif
 
-#include "byteio.h"
-#include "bitio.h"
-
+// #include "bitio.h"
+// #include "byteio.h"
+#include "model.h"
 //
 // The arithmetic decompressor is a general purpose decompressor that
-// is parameterized on the types of the input, output, and 
+// is parameterized on the types of the input, output, and
 // model objects, in an attempt to make it as flexible as
 // possible. It is easiest to use by calling the compress()
 // convenience function found at the bottom of this header file
@@ -50,85 +51,87 @@ THE SOFTWARE.
 // function. Both of these functions should throw exceptions on
 // errors. We expect the EOF to be embedded in the compressed
 // stream, so it needs to be extracted by the decoder. If the
-// compression goes awry, the get_bit() function will be 
+// compression goes awry, the get_bit() function will be
 // repeatedly called on EOF(), in which case it would be good
 // for it to return an error.
 //
-template<typename INPUT, typename OUTPUT, typename MODEL>
-class decompressor
-{
-  typedef typename MODEL::CODE_VALUE CODE_VALUE;
-  typedef typename MODEL::prob prob;
-public :
-  decompressor(INPUT &input, OUTPUT &output, MODEL &model ) 
-  : m_input(input),
-    m_output(output),
-    m_model(model)
-  {
-  }
-  int operator()()
-  {
-#ifdef LOG
-    std::ofstream log("decompressor.log");
-    log << std::hex;
-#endif
-    CODE_VALUE high = MODEL::MAX_CODE;
-    CODE_VALUE low = 0;
-    CODE_VALUE value = 0;
-    for ( int i = 0 ; i < MODEL::CODE_VALUE_BITS ; i++ ) {
-      value <<= 1;
-      value += m_input.get_bit() ? 1 : 0;
+
+void convertToBits(vector<char> &input, vector<bool> &bits, int startInd, int endInd){
+  for(int i = startInd; i < endInd; i++){
+    char c = input[i];
+    int mask = 1 << 7;
+    for(int j = 0; j < 8; j ++){
+      bits.push_back(c | mask);
+      mask >>= 1;
     }
-    for ( ; ; ) {
-      CODE_VALUE range = high - low + 1;
-      CODE_VALUE scaled_value =  ((value - low + 1) * m_model.getCount() - 1 ) / range;
-      int c;
-      prob p = m_model.getChar( scaled_value, c );
-      if ( c == 256 )
+  }
+}
+
+void decompress(vector<char> &input, vector<char> &output, Model &model, int startInd, int endInd) {
+#ifdef LOG
+  std::ofstream log("decompressor.log");
+  log << std::hex;
+#endif
+  vector<bool> bits;
+  convertToBits(input, bits, startInd, endInd);
+  uint high = Model::MAX;
+  uint low = 0;
+  uint value = 0;
+  uint bitIndex = 0;
+  for (; bitIndex < Model::CODE_VALUE_BITS; bitIndex++) {
+    value <<= 1;
+    value += bits[bitIndex] ? 1 : 0;
+  }
+  for (; bitIndex < bits.size() + 1; bitIndex ++) {
+    uint range = high - low + 1;
+    cout << "RANGE: " << range << " VALUE: " << value << endl;
+    uint scaled_value =
+        ((value - low + 1) * model.getCount() - 1) / range;
+    unsigned char c;
+    auto p = model.getChar(scaled_value, c);
+    // if (c == 256)
+    //   break;
+    if(get<0>(p)){
+      output.push_back(c);
+    }
+#ifdef LOG
+    log << std::hex << "0x" << std::setw(2) << std::setfill('0') << c;
+    if (c > 0x20 && c <= 0x7f)
+      log << "(" << char(c) << ")";
+    log << " 0x" << low << " 0x" << high << " => ";
+#endif
+
+    high = low + (range * get<1>(p)) / get<2>(p) - 1;
+    low = low + (range * get<0>(p)) / get<2>(p);
+#ifdef LOG
+    log << "0x" << low << " 0x" << high << "\n";
+#endif
+    for (;;) {
+      if (high < Model::ONE_HALF) {
+        // do nothing, bit is a zero
+      } else if (low >= Model::ONE_HALF) {
+        value -= Model::ONE_HALF; // subtract one half from all three code
+                                  // values
+        low -= Model::ONE_HALF;
+        high -= Model::ONE_HALF;
+      } else if (low >= Model::ONE_FOURTH && high < Model::THREE_FOURTHS) {
+        value -= Model::ONE_FOURTH;
+        low -= Model::ONE_FOURTH;
+        high -= Model::ONE_FOURTH;
+      } else
         break;
-      m_output.putByte(c);
-#ifdef LOG
-      log << std::hex << "0x" << std::setw(2) << std::setfill('0') << c;
-      if ( c > 0x20 && c <= 0x7f )
-        log << "(" << char(c) << ")";
-      log << " 0x" << low << " 0x" << high << " => ";
-#endif 
-      high = low + (range*p.high)/p.count -1;
-      low = low + (range*p.low)/p.count;
-#ifdef LOG
-      log << "0x" << low << " 0x" << high << "\n";
-#endif
-      for( ; ; ) {
-        if ( high < MODEL::ONE_HALF ) {
-          //do nothing, bit is a zero
-        } else if ( low >= MODEL::ONE_HALF ) {
-          value -= MODEL::ONE_HALF;  //subtract one half from all three code values
-          low -= MODEL::ONE_HALF;
-          high -= MODEL::ONE_HALF;
-        } else if ( low >= MODEL::ONE_FOURTH && high < MODEL::THREE_FOURTHS ) {
-          value -= MODEL::ONE_FOURTH;
-          low -= MODEL::ONE_FOURTH;
-          high -= MODEL::ONE_FOURTH;
-        } else
-          break;
-        low <<= 1;
-        high <<= 1;
-        high++;
-        value <<= 1;
-        value += m_input.get_bit() ? 1 : 0;
-      }
+      low <<= 1;
+      high <<= 1;
+      high++;
+      value <<= 1;
+      value += (bitIndex < bits.size() && bits[bitIndex]) ? 1 : 0;
     }
-#ifdef LOG
-      log << std::hex << "0x" << std::setw(2) << std::setfill('0') << 256;
-      log << " 0x" << low << " 0x" << high << "\n";
-#endif 
-    return 0;
   }
-private :
-  OUTPUT &m_output;
-  INPUT &m_input;
-  MODEL &m_model;
-};
+#ifdef LOG
+  log << std::hex << "0x" << std::setw(2) << std::setfill('0') << 256;
+  log << " 0x" << low << " 0x" << high << "\n";
+#endif
+}
 
 //
 // This convenience function takes care of
@@ -136,13 +139,5 @@ private :
 // input and output objects, then calling
 // the decompressor.
 //
-template<typename INPUT, typename OUTPUT, typename MODEL>
-int decompress(INPUT &source, OUTPUT &target, MODEL &model)
-{
-  input_bits<INPUT> in(source,MODEL::CODE_VALUE_BITS);
-  output_bytes<OUTPUT> out(target);
-  decompressor<input_bits<INPUT>, output_bytes<OUTPUT>, MODEL> d(in,out, model);
-  return d();
-}
 
 #endif //#ifndef DECOMPESSOR_DOT_H

@@ -8,7 +8,7 @@ class TrieNode{
     public:
     double value;
     uint level;
-    map<char, TrieNode*> children;
+    map<unsigned char, TrieNode*> children;
     TrieNode *parent;
     // TrieNode();
     TrieNode(double _value, int _level, TrieNode *_parent);
@@ -20,7 +20,7 @@ class Trie{
     Trie();
     TrieNode root;
     // static TrieNode DUMMY;
-    pair<TrieNode*, bool> find(deque<char> &str, uint start, TrieNode& current);
-    pair<TrieNode*, bool> find(deque<char> &str, uint start);
-    TrieNode& insert(deque<char> &str, uint start);
+    pair<TrieNode*, bool> find(deque<unsigned char> &str, uint start, TrieNode& current);
+    pair<TrieNode*, bool> find(deque<unsigned char> &str, uint start);
+    TrieNode& insert(deque<unsigned char> &str, uint start);
 };
