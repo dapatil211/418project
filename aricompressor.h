@@ -54,7 +54,7 @@ typedef vector<tuple<double, double, double>> prob_vect;
 void convertToChars(vector<bool> &bits, vector<char> &m_output) {
   char buffer = 0;
   for (uint i = 0; i < bits.size(); i++) {
-    buffer |= (bits[i] << (i % 8));
+    buffer |= (bits[i] << (7 - (i % 8)));
     if (i % 8 == 7) {
       m_output.push_back(buffer);
       buffer = 0;
@@ -102,12 +102,12 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
       if (get<2>(*i) == 0) {
         continue;
       }
-      cout << get<0>(*i) << " " <<get<1>(*i) << " " <<get<2>(*i)  << endl;
+      // cout << get<0>(*i) << " " <<get<1>(*i) << " " <<get<2>(*i)  << endl;
       uint range = high - low + 1;
       // high = low + (range * p.high / p.count) - 1;
-      high = low + (range * get<1>(*i) / get<2>(*i)) - 1;
+      high = low + (range * (uint) (get<1>(*i) * 2) / (uint)(get<2>(*i)*2)) - 1;
       // low = low + (range * p.low / p.count);
-      low = low + (range * get<0>(*i) / get<2>(*i));
+      low = low + (range * (uint)(get<0>(*i)*2) / (uint)(get<2>(*i)*2));
 #ifdef LOG
       log << "NEW" << endl;
       log  << low << " " <<  high << " " << bitset<17>(low) << " " << bitset<17>(high) << endl;
@@ -135,7 +135,7 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
         else if (low >= Model::ONE_FOURTH && high < Model::THREE_FOURTHS) {
           pending_bits++;
           low -= Model::ONE_FOURTH;
-          high += Model::ONE_FOURTH;
+          high -= Model::ONE_FOURTH;
         } else
           break;
         high <<= 1;

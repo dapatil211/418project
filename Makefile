@@ -1,6 +1,6 @@
 CC = g++
 DEBUG = 0
-LOG=1
+LOG=0
 CFLAGS = -O3 -g -Wall -DDEBUG=$(DEBUG) -DLOG=$(LOG) -std=c++11
 LDFLAGS = -lm
 

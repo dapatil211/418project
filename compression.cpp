@@ -43,7 +43,9 @@ int main(){
     // cout << (string("acb") < string("abc")) << endl;
     // cout << string("abc").back() << endl;
 
-    ifstream fin("test.in", ios::in);
+    // ifstream fin("test.in", ios::in);
+    ifstream fin("enwik8", ios::in);
+
     vector<char> input;
     vector<char> output;
     readInput(fin, input);
@@ -52,7 +54,8 @@ int main(){
     cout << bitset<17>(Model::ONE_FOURTH) << " " << bitset<17>(Model::ONE_HALF) << " " << bitset<17>(Model::THREE_FOURTHS) << " " << bitset<17>(Model::MAX) << endl;
     compress(input, output, 0, input.size(), m);
     cout << "Finished compressing " << input.size() << endl;
-    ofstream fout("test.comp", ios::out);
+    // ofstream fout("test.comp", ios::out);
+    ofstream fout("enwik8.comp", ios::out);
     for(uint i = 0; i < output.size(); i++){
         fout.put(output[i]);
     }
