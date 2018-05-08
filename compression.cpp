@@ -49,7 +49,7 @@ int main(){
     readInput(fin, input);
     fin.close();
     Model m = Model(5, 255);
-    cout << Model::ONE_FOURTH << " " << Model::ONE_HALF << " " << Model::THREE_FOURTHS << " " << Model::MAX << endl;
+    cout << bitset<17>(Model::ONE_FOURTH) << " " << bitset<17>(Model::ONE_HALF) << " " << bitset<17>(Model::THREE_FOURTHS) << " " << bitset<17>(Model::MAX) << endl;
     compress(input, output, 0, input.size(), m);
     cout << "Finished compressing " << input.size() << endl;
     ofstream fout("test.comp", ios::out);

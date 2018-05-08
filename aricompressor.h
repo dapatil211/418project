@@ -35,6 +35,7 @@ http://marknelson.us/2014/10/19/data-compression-with-arithmetic-coding
 #include <stdexcept>
 #include <vector>
 #include <iostream>
+#include <bitset>
 using namespace std;
 #ifdef LOG
 #include <iomanip>
@@ -56,6 +57,7 @@ void convertToChars(vector<bool> &bits, vector<char> &m_output) {
     buffer |= (bits[i] << (i % 8));
     if (i % 8 == 7) {
       m_output.push_back(buffer);
+      buffer = 0;
     }
   }
   if (bits.size() % 8 != 0) {
@@ -92,7 +94,7 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
     log << std::dec  << std::setw(2) << std::setfill('0') << c;
     if (c > 0x20 && c <= 0x7f)
       log << "(" << char(c) << ")";
-    log << low  << " " << high << " " << bitset<" => ";
+    log << low  << " " << high << " " << bitset<17>(low) << " " << bitset<17>(high) << " => ";
 #endif
     // prob p = m_model.getProbability( c );
     prob_vect p = model.getProbability(c);
@@ -107,7 +109,8 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
       // low = low + (range * p.low / p.count);
       low = low + (range * get<0>(*i) / get<2>(*i));
 #ifdef LOG
-      log  << low << " " <<  high << endl;
+      log << "NEW" << endl;
+      log  << low << " " <<  high << " " << bitset<17>(low) << " " << bitset<17>(high) << endl;
 #endif
       //
       // On each pass there are six possible configurations of high/low,
@@ -138,8 +141,14 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
         high <<= 1;
         high++;
         low <<= 1;
+//         #ifdef LOG
+//       log  << low << " " <<  high << " " << bitset<17>(low) << " " << bitset<17>(high) << endl;
+// #endif
         high &= Model::MAX;
         low &= Model::MAX;
+        #ifdef LOG
+      log  << low << " " <<  high << " " << bitset<17>(low) << " " << bitset<17>(high) << endl;
+#endif
       }
     }
     model.updateModel(c);
