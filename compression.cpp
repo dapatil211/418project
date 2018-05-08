@@ -3,7 +3,7 @@
 #include <vector>
 #include "aricompressor.h"
 using namespace std;
-using ht = tsl::htrie_map<char, int32_t>;
+// using ht = tsl::htrie_map<char, int32_t>;
 
 void readInput(ifstream& fin, vector<char> &input){
     int count = 0;
@@ -42,6 +42,7 @@ int main(){
     // }
     // cout << (string("acb") < string("abc")) << endl;
     // cout << string("abc").back() << endl;
+
     ifstream fin("enwik8", ios::in);
     vector<char> input;
     vector<char> output;
@@ -51,11 +52,12 @@ int main(){
     compress(input, output, 0, input.size(), m);
     cout << "Finished compressing " << input.size() << endl;
     ofstream fout("enwik8.comp", ios::out);
-    for(int i = 0; i < output.size(); i++){
+    for(uint i = 0; i < output.size(); i++){
         fout.put(output[i]);
     }
     fout.close();
     cout << "Finished Writing " << output.size() << " bytes" << endl;
+    
     // string compress = string("bananaboat");
     // for(auto it = compress.begin(); it != compress.end(); it++){
     //     auto probs = m.getProbability(*it);

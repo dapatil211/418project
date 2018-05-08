@@ -32,3 +32,5 @@
 *.app
 *.zip
 enwik8
+
+.vscode/*

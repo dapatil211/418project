@@ -52,7 +52,7 @@ typedef vector<tuple<double, double, double>> prob_vect;
 
 void convertToChars(vector<bool> &bits, vector<char> &m_output) {
   char buffer = 0;
-  for (int i = 0; i < bits.size(); i++) {
+  for (uint i = 0; i < bits.size(); i++) {
     buffer |= (bits[i] << (i % 8));
     if (i % 8 == 7) {
       m_output.push_back(buffer);
@@ -106,7 +106,7 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
       // low = low + (range * p.low / p.count);
       low = low + (range * get<0>(*i) / get<2>(*i));
 #ifdef LOG
-      log << "0x" << low << " 0x" << high << "\n";
+      log << "0x" << low << " 0x" << high << endl;
 #endif
       //
       // On each pass there are six possible configurations of high/low,
@@ -140,16 +140,17 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
         high &= Model::MAX;
         low &= Model::MAX;
       }
-      if (c == 256) // 256 is the special EOF code
-        break;
     }
+    model.updateModel(c);
+    if (c == 256) // 256 is the special EOF code
+      break;
   }
   pending_bits++;
   if (low < Model::ONE_FOURTH)
     put_bit_plus_pending(0, pending_bits, bits);
   else
     put_bit_plus_pending(1, pending_bits, bits);
-
+  cout << "# bits = " << bits.size() << endl;
   convertToChars(bits, output);
 #ifdef LOG
   log.close();

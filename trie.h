@@ -7,10 +7,11 @@ using namespace std;
 class TrieNode{
     public:
     double value;
-    map<char, reference_wrapper<TrieNode>> children;
-    TrieNode &parent;
-    TrieNode();
-    TrieNode(double _value, TrieNode &_parent);
+    uint level;
+    map<char, TrieNode*> children;
+    TrieNode *parent;
+    // TrieNode();
+    TrieNode(double _value, int _level, TrieNode *_parent);
     ~TrieNode();
 };
 
@@ -18,8 +19,8 @@ class Trie{
     public:
     Trie();
     TrieNode root;
-    static TrieNode DUMMY;
-    TrieNode& find(deque<char> &str);
-    pair<TrieNode*, bool> find(deque<char> &str, TrieNode& current);
-    TrieNode& insert(deque<char> &str);
+    // static TrieNode DUMMY;
+    pair<TrieNode*, bool> find(deque<char> &str, uint start, TrieNode& current);
+    pair<TrieNode*, bool> find(deque<char> &str, uint start);
+    TrieNode& insert(deque<char> &str, uint start);
 };
