@@ -53,6 +53,7 @@ int main(){
 
     // ifstream fin("test.in", ios::in);
     ifstream fin("enwik8", ios::in);
+    //ifstream fin("test.in", ios::in);
 
     vector<char> input;
     readInput(fin, input);
@@ -62,12 +63,12 @@ int main(){
 
     #if OMP
     int total = input.size();
-    int numThreads = 2;
+    int numThreads = 15;
     omp_set_num_threads(numThreads);
     int tid;
     int chunkSize = (total + numThreads - 1)/numThreads;
     int prefixSum[numThreads];
-    int sum;
+    int sum = 0;
     cout << "In parallel section" << endl;
     vector<vector<char>> output;
     for(int i = 0; i < numThreads; i++){
@@ -84,12 +85,15 @@ int main(){
         cout << "Finished compressing tid" << tid << endl;
     }
 
+    cout << "HERE1" << endl;
     for(tid = 0; tid < numThreads; tid++){
         prefixSum[tid] = sum;
         sum += output[tid].size();
     }
+    cout << "HERE2" << endl;
 
     char compressedOut[sum];
+    cout << "HERE3" << endl;
 
     #pragma omp parallel for
     for(tid = 0; tid < numThreads; tid++){
@@ -98,16 +102,20 @@ int main(){
             compressedOut[prefixSum[tid] + i] = output[tid][i];
         }
     }
+    cout << "HERE4" << endl;
 
     ofstream fout("enwikpar.out", ios::out);
+    //ofstream fout("test.out", ios::out);
     for(int i = 0; i < numThreads; i++){
         fout <<prefixSum[i]<< " ";
     }
+    cout << "HERE5" << endl;
 
 
     for(int i = 0; i < sum; i++){
         fout.put(compressedOut[i]);
     }
+    cout << "HERE6" << endl;
 
     fout.close();
     cout << "Finished Writing " << sum << " bytes" << endl;

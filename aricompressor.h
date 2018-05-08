@@ -93,7 +93,7 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
     char c = input[file_index];
     if(file_index % 100000 == 0){
 #if OMP
-      cout << "tid " << omp_get_thread_num() << ": " << file_index;
+      cout << "tid " << omp_get_thread_num() << ": " << file_index << endl;
 #else
       cout << file_index << endl;
 #endif
