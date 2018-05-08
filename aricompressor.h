@@ -41,6 +41,12 @@ using namespace std;
 #include <iomanip>
 #endif
 
+
+#if OMP
+#include <omp.h>
+#endif
+
+
 //
 // The arithmetic compressor is a general purpose compressor that
 // is parameterized on the types of the input, output, and
@@ -86,7 +92,11 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
   for(int file_index = startInd; file_index <= endInd; file_index++) {
     char c = input[file_index];
     if(file_index % 100000 == 0){
+#if OMP
+      cout << "tid " << omp_get_thread_num() << ": " << file_index;
+#else
       cout << file_index << endl;
+#endif
     }
     if (c == -1)
       c = 255;
@@ -102,7 +112,7 @@ void compress(vector<char> &input, vector<char> &output, int startInd, int endIn
       if (get<2>(*i) == 0) {
         continue;
       }
-      cout << get<0>(*i) << " " <<get<1>(*i) << " " <<get<2>(*i)  << endl;
+      //cout << get<0>(*i) << " " <<get<1>(*i) << " " <<get<2>(*i)  << endl;
       uint range = high - low + 1;
       // high = low + (range * p.high / p.count) - 1;
       high = low + (range * get<1>(*i) / get<2>(*i)) - 1;
