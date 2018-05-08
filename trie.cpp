@@ -27,7 +27,7 @@ TrieNode &Trie::insert(deque<unsigned char> &str, uint start) {
 
 pair<TrieNode *, bool> Trie::find(deque<unsigned char> &str, uint start, TrieNode &current) {
   TrieNode *curNode = &current;
-  if(start >= str.size()){
+  if(start > str.size()){
       return make_pair(curNode, false);
   }
   for (uint i = start; i < str.size(); i++) {

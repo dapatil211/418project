@@ -132,7 +132,7 @@ vector<tuple<double, double, double>> Model::getProbability(unsigned char c) {
   }
 
   set<unsigned char>::iterator it = unfound.find(c);
-  cout << c << " " << (int) c << endl;
+//   cout << c << " " << (int) c << endl;
   if (it != unfound.end()) {
     int dist = distance(unfound.begin(), it);
     probabilities.push_back(make_tuple(dist, dist + 1, unfound.size()));
@@ -248,20 +248,23 @@ tuple<double, double, double> Model::getChar(double scaledValue, unsigned char &
   }
 
   auto it = unfound.begin();
-  advance(it, (int) (scaledValue - 1));
+  advance(it, (int) (scaledValue));
   c = *it;
   unfound.erase(*it);
-  return make_tuple(scaledValue - 1, scaledValue, unfound.size() + 1);
+  contextStartDec = 0;
+  unusable.clear();
+  return make_tuple(scaledValue, scaledValue + 1, unfound.size() + 1);
 }
 
 double Model::getCount() {
-    while(contextStartDec < k){
+    while(contextStartDec <= k){
         auto findRes = context.find(prevChars, contextStartDec);
-        TrieNode &parent = *(findRes.first);
-        if(!findRes.first->level || findRes.first->level < prevChars.size() - contextStartDec){
+        // if(!findRes.first->level || findRes.first->level < prevChars.size() - contextStartDec){
+        if(!findRes.second){
             contextStartDec++;
             continue;
         }
+        TrieNode &parent = *(findRes.first);
         // parent.
         map<unsigned char, TrieNode*> usable;
         set_difference(parent.children.begin(), parent.children.end(), 
@@ -271,7 +274,7 @@ double Model::getCount() {
             contextStartDec++;
             continue;
         }
-        double total = 0;
+        double total = usable.size() * .5;
         for(auto uit = usable.begin(); uit != usable.end(); uit ++){
             total += uit->second->value;
         }

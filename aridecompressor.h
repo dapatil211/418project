@@ -30,7 +30,7 @@ http://marknelson.us/2014/10/19/data-compression-with-arithmetic-coding
 */
 #ifndef DECOMPESSOR_DOT_H
 #define DECOMPESSOR_DOT_H
-
+#include <bitset>
 #ifdef LOG
 #include <iomanip>
 #include <iostream>
@@ -56,18 +56,21 @@ http://marknelson.us/2014/10/19/data-compression-with-arithmetic-coding
 // for it to return an error.
 //
 
-void convertToBits(vector<char> &input, vector<bool> &bits, int startInd, int endInd){
-  for(int i = startInd; i < endInd; i++){
+void convertToBits(vector<char> &input, vector<bool> &bits, int startInd,
+                   int endInd) {
+  for (int i = startInd; i < endInd; i++) {
     char c = input[i];
     int mask = 1 << 7;
-    for(int j = 0; j < 8; j ++){
-      bits.push_back(c | mask);
+    cout << bitset<8>(c) << endl;
+    for (int j = 0; j < 8; j++) {
+      bits.push_back(c & mask);
       mask >>= 1;
     }
   }
 }
 
-void decompress(vector<char> &input, vector<char> &output, Model &model, int startInd, int endInd) {
+void decompress(vector<char> &input, vector<char> &output, Model &model,
+                int startInd, int endInd) {
 #ifdef LOG
   std::ofstream log("decompressor.log");
   log << std::hex;
@@ -79,19 +82,25 @@ void decompress(vector<char> &input, vector<char> &output, Model &model, int sta
   uint value = 0;
   uint bitIndex = 0;
   for (; bitIndex < Model::CODE_VALUE_BITS; bitIndex++) {
+    // cout << bits[bitIndex];
     value <<= 1;
     value += bits[bitIndex] ? 1 : 0;
   }
-  for (; bitIndex < bits.size() + 1; bitIndex ++) {
+  for (; bitIndex < bits.size() + 1;) {
     uint range = high - low + 1;
-    cout << "RANGE: " << range << " VALUE: " << value << endl;
-    uint scaled_value =
-        ((value - low + 1) * model.getCount() - 1) / range;
+    cout << "RANGE: " << range << " VALUE: " << value;
+    double mcount = model.getCount();
+    uint scaled_value = ((value - low + 1) * mcount - 1) / range;
+    cout << " COUNT: " << mcount << " SCALED: " << scaled_value << endl;
     unsigned char c;
     auto p = model.getChar(scaled_value, c);
+    cout << get<0>(p) << " " << get<1>(p) << " " << get<2>(p) << endl;
+
     // if (c == 256)
     //   break;
-    if(get<0>(p)){
+    if (get<0>(p)) {
+      cout << c << endl;
+      model.updateModel(c);
       output.push_back(c);
     }
 #ifdef LOG
@@ -101,21 +110,29 @@ void decompress(vector<char> &input, vector<char> &output, Model &model, int sta
     log << " 0x" << low << " 0x" << high << " => ";
 #endif
 
-    high = low + (range * get<1>(p)) / get<2>(p) - 1;
-    low = low + (range * get<0>(p)) / get<2>(p);
+    high = low + (range * (uint)(get<1>(p) * 2) / (uint)(get<2>(p) * 2)) - 1;
+    // low = low + (range * p.low / p.count);
+    low = low + (range * (uint)(get<0>(p) * 2) / (uint)(get<2>(p) * 2));
 #ifdef LOG
     log << "0x" << low << " 0x" << high << "\n";
 #endif
     for (;;) {
+      cout << "LOW: " << bitset<17>(low) << " HIGH: " << bitset<17>(high)
+           << " VALUE: " << bitset<32>(value) << endl;
       if (high < Model::ONE_HALF) {
         // do nothing, bit is a zero
+        cout << "CASE 1" << endl;
+
       } else if (low >= Model::ONE_HALF) {
         value -= Model::ONE_HALF; // subtract one half from all three code
-                                  // values
+        // values
         low -= Model::ONE_HALF;
         high -= Model::ONE_HALF;
+        cout << "CASE 2" << endl;
+
       } else if (low >= Model::ONE_FOURTH && high < Model::THREE_FOURTHS) {
         value -= Model::ONE_FOURTH;
+        cout << "CASE 3" << endl;
         low -= Model::ONE_FOURTH;
         high -= Model::ONE_FOURTH;
       } else
@@ -125,6 +142,9 @@ void decompress(vector<char> &input, vector<char> &output, Model &model, int sta
       high++;
       value <<= 1;
       value += (bitIndex < bits.size() && bits[bitIndex]) ? 1 : 0;
+      cout << bits[bitIndex] << endl;
+      // value &= Model::MAX;
+      bitIndex++;
     }
   }
 #ifdef LOG
@@ -133,11 +153,11 @@ void decompress(vector<char> &input, vector<char> &output, Model &model, int sta
 #endif
 }
 
-//
-// This convenience function takes care of
-// constructing the decompressor and the
-// input and output objects, then calling
-// the decompressor.
-//
+  //
+  // This convenience function takes care of
+  // constructing the decompressor and the
+  // input and output objects, then calling
+  // the decompressor.
+  //
 
 #endif //#ifndef DECOMPESSOR_DOT_H
