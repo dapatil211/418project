@@ -2,17 +2,25 @@
 #include <iostream>
 #include <vector>
 #include "aricompressor.h"
+
+
+
+#if OMP
+#include <omp.h>
+#endif
+
+
 using namespace std;
 // using ht = tsl::htrie_map<char, int32_t>;
 
 void readInput(ifstream& fin, vector<char> &input){
-    int count = 0;
+    //int count = 0;
     char c;
     while(fin.get(c)){
         input.push_back(c);
     }
     fin.close();
-    cout << count << endl;
+    //cout << count << endl;
     return;
 }
 
@@ -47,12 +55,71 @@ int main(){
     ifstream fin("enwik8", ios::in);
 
     vector<char> input;
-    vector<char> output;
     readInput(fin, input);
     fin.close();
+    //cout << bitset<17>(Model::ONE_FOURTH) << " " << bitset<17>(Model::ONE_HALF) << " " << bitset<17>(Model::THREE_FOURTHS) << " " << bitset<17>(Model::MAX) << endl;
+    cout << "Finished Reading Input" << endl;
+
+    #if OMP
+    int total = input.size();
+    int numThreads = 2;
+    omp_set_num_threads(numThreads);
+    int tid;
+    int chunkSize = (total + numThreads - 1)/numThreads;
+    int prefixSum[numThreads];
+    int sum;
+    cout << "In parallel section" << endl;
+    vector<vector<char>> output;
+    for(int i = 0; i < numThreads; i++){
+        output.push_back(vector<char>());
+    }
+    #pragma omp parallel for
+    for(tid = 0; tid < numThreads; tid++){
+        Model m = Model(5, 255);
+        int startIndex = tid*chunkSize;
+        int endIndex = min((tid+1)*chunkSize, total);
+
+        compress(input, output[tid], startIndex, endIndex, m);
+
+        cout << "Finished compressing tid" << tid << endl;
+    }
+
+    for(tid = 0; tid < numThreads; tid++){
+        prefixSum[tid] = sum;
+        sum += output[tid].size();
+    }
+
+    char compressedOut[sum];
+
+    #pragma omp parallel for
+    for(tid = 0; tid < numThreads; tid++){
+        int i;
+        for(i = 0; i < output[tid].size(); i++){
+            compressedOut[prefixSum[tid] + i] = output[tid][i];
+        }
+    }
+
+    ofstream fout("enwikpar.out", ios::out);
+    for(int i = 0; i < numThreads; i++){
+        fout <<prefixSum[i]<< " ";
+    }
+
+
+    for(int i = 0; i < sum; i++){
+        fout.put(compressedOut[i]);
+    }
+
+    fout.close();
+    cout << "Finished Writing " << sum << " bytes" << endl;
+
+    #else
+    cout << "In sequential section" << endl;
+    vector<char> output;
     Model m = Model(5, 255);
-    cout << bitset<17>(Model::ONE_FOURTH) << " " << bitset<17>(Model::ONE_HALF) << " " << bitset<17>(Model::THREE_FOURTHS) << " " << bitset<17>(Model::MAX) << endl;
+
     compress(input, output, 0, input.size(), m);
+
+
     cout << "Finished compressing " << input.size() << endl;
     // ofstream fout("test.comp", ios::out);
     ofstream fout("enwik8.comp", ios::out);
@@ -61,7 +128,8 @@ int main(){
     }
     fout.close();
     cout << "Finished Writing " << output.size() << " bytes" << endl;
-    
+
+    #endif
     // string compress = string("bananaboat");
     // for(auto it = compress.begin(); it != compress.end(); it++){
     //     auto probs = m.getProbability(*it);
